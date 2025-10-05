@@ -11,7 +11,6 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
-import os
 from neomodel import config as neomodel_config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -29,7 +28,6 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
-
 # Application definition
 
 INSTALLED_APPS = [
@@ -42,12 +40,15 @@ INSTALLED_APPS = [
     'rest_framework',
     'django_neomodel',
     'api',
-
+    'rest_framework_simplejwt',
+    'corsheaders',
+    'chat_api',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -78,20 +79,44 @@ WSGI_APPLICATION = 'Backend.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+# --- CONFIGURACIÓN DE POSTGRESQL (PARA USUARIOS Y CHAT) ---
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'chat_db',      # El nombre que le diste a tu base de datos
+        'USER': 'postgres',     # Tu usuario de PostgreSQL
+        'PASSWORD': 'admin',    # Tu contraseña
+        'HOST': 'localhost',
+        'PORT': '5432',
     }
 }
 
-NEO4J_URI = os.getenv("NEO4J_URI", "bolt://neo4j:7687")
-NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
-NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "neo4jpass")
-neomodel_config.DATABASE_URL = f"bolt://{NEO4J_USER}:{NEO4J_PASSWORD}@{os.getenv('NEO4J_HOST','127.0.0.1')}:{os.getenv('NEO4J_PORT','7687')}"
+
+# --- CONFIGURACIÓN DE NEO4J (PARA EL SISTEMA RAG) ---
+# Se han reemplazado las variables de entorno por valores explícitos.
+# ADVERTENCIA: No se recomienda tener contraseñas escritas directamente en producción.
+NEO4J_USER = "neo4j"
+NEO4J_PASSWORD = "bennyPERRY97?"
+NEO4J_HOST = "localhost"  # O "127.0.0.1"
+NEO4J_PORT = "7687"
+NEO4J_DATABASE = "neo4j-2025-10-04t16-41-55"
+
+# Construye la URL de conexión para neomodel.
+# El formato es: bolt://<usuario>:<contraseña>@<host>:<puerto>/?db=<nombre_db>
+neomodel_config.DATABASE_URL = f"bolt://{NEO4J_USER}:{NEO4J_PASSWORD}@{NEO4J_HOST}:{NEO4J_PORT}/?db={NEO4J_DATABASE}"
 
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+# --- CONFIGURACIÓN DE SERVICIOS EXTERNOS ---
+GEMINI_API_KEY = "AIzaSyBaP2cwPhG6z2iGs2Lq-30LRvxTtYy3emY"
+
+# --- CONFIGURACIÓN DE DJANGO REST FRAMEWORK ---
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    )
+}
+CORS_ALLOW_ALL_ORIGINS = True
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -116,11 +141,8 @@ AUTH_PASSWORD_VALIDATORS = [
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
 LANGUAGE_CODE = 'en-us'
-
 TIME_ZONE = 'UTC'
-
 USE_I18N = True
-
 USE_TZ = True
 
 
@@ -133,5 +155,3 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-
